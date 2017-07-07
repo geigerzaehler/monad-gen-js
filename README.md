@@ -17,3 +17,8 @@ allow you to discover the code incrementally. (See `.vimrc`.)
 You can also skip to the end to run the finished code with
 
     $ node 07-db.js <COOKIE SECRET> <RESOURCE ID>
+
+There are some additional files that elaborate on aspects of this approach
+
+* [How does this approach compare to dependency
+  injection?](./compare-with-dependency-injection.md)
