@@ -49,7 +49,46 @@ function runWithConfigAndLogging1 (config, log, gen) {
 
 
 // function main () {{{
+
+function main () {
+  const config = {secret: 'SECRET'}
+  const req = {id: 'REQUEST ID', cookie: process.argv[2]}
+  const response = runWithConfigAndLogging1(
+    config,
+    console.log.bind(console),
+    handleRequest(req),
+  )
+  console.log(response)
+}
+if (!module.parent) main()
+// }}}
+
+
+// functiong unwrapLogging () {{{
+/**
+ * Takes a generator, handles all the 'log' commands and returns a generator
+ * that yields all other commands.
  */
+exports.unwrapLogging = unwrapLogging
+function* unwrapLogging (log, gen) {
+  let input
+  while (true) {
+    const {value, done} = gen.next(input)
+    if (done) {
+      return value
+    }
+    if (value.command === 'log') {
+      log('LOG', ...value.param)
+    } else {
+      // We yield an unhandled command to be handled by another interpreter.
+      input = yield value
+    }
+  }
+}
+
+// }}}
+
+// functiong unwrapConfig () {{{
 exports.unwrapConfig = unwrapConfig
 function* unwrapConfig (config, gen) {
   let input

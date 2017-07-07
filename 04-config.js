@@ -9,7 +9,9 @@
 // Bad config {{{
 //
 // We rely on a global object. This is hard to teset.
-const Config = require('./config')
+
+
+const Config = require('./04-config')
 
 function handleRequestBad (req) {
   if (req.cookie === Config.secret) {
