@@ -5,7 +5,8 @@
  */
 const {log} = require('./03-logger')
 const {validCookie} = require('./04-config')
-const {run, unwrapConfig} = require('./05-combining-config-and-log')
+const {run} = require('./05-combining-config-and-log')
+const {makeConfigInterpreter, compose} = require('./07-interpreter-factory')
 
 function* handleRequest (req) {
   yield* log('received request', req)
@@ -42,6 +43,13 @@ function* unwrapCollectLogger (gen) {
 }
 
 function main () {
+  const runner = compose([
+    run,
+    makeConfigInterpreter({secret: 'SECRET'}),
+    unwrapCollectLogger,
+    handleRequest,
+  ])
+
   const req = {
     path: '/root',
     cookie: 'SECRET',
@@ -51,14 +59,15 @@ function main () {
   // Because we use the `unwrapCollectLogger` interpreter we now have a _pair_
   // of return values: The value itself and the array of logs.
   //
-  // Note how this is handled transparently by `unwrapConfig` and `run`.
-  const {value, logs} = run(
-    unwrapConfig({secret: 'SECRET'},
-    unwrapCollectLogger(handleRequest(req))))
+  // Note how we don’t need to make any changes to `run` and
+  // `makeConfigInterpreter`.
+  const {value, logs} = runner(req)
   console.dir({
     response: value,
     logs: logs,
   }, {depth: 3})
 }
+
+// TODO we should have a makeInterpreter like function that handles state
 
 main()

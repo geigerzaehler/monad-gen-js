@@ -137,6 +137,7 @@ function runWithConfigAndLogging (config, log, gen) {
  * function. We assert that all commands are handled and the generator
  * does not yield anything.
  */
+exports.run = run
 function run (gen) {
   const {value, done} = gen.next()
   if (done) {
