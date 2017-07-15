@@ -8,7 +8,7 @@ rules:
   no-trailing-spaces: error
   comma-dangle: [error, always-multiline]
   no-use-before-define: [error, {functions: false, classes: false}]
-  no-unused-vars: never
+  no-unused-vars: off
   # ES6
   no-var: error
   arrow-parens: error

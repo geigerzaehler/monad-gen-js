@@ -5,11 +5,16 @@
  *
  * Run as
  *
- *   node 07-db.js <COOKIE SECRET> <RESOURCE ID>
+ *   node 08-db.js <COOKIE SECRET> <RESOURCE ID>
  */
 const {log} = require('./03-logger')
 const {validCookie} = require('./04-config')
-const {unwrapLogging, unwrapConfig} = require('./05-combining-config-and-log')
+const {
+  makeLoggingInterpreter,
+  makeConfigInterpreter,
+  makeInterpreter,
+  compose,
+} = require('./07-interpreter-factory')
 const {runAsync, async_} = require('./06-async')
 
 function* handleRequest (req) {
@@ -38,35 +43,35 @@ function* loadFromDb (id) {
  *
  * Other than that it is pretty similar to all the unwrapX functions.
  */
-function* unwrapDb (db, gen) {
-  let input
-  while (true) {
-    const {value, done} = gen.next(input)
-    if (done) {
-      return value
-    }
-
-    if (value.command === 'db') {
-      const {method, args} = value.param
-      const resultPromise = db[method](...args)
-      input = yield* async_(resultPromise)
-    } else {
-      input = yield value
-    }
-  }
+function makeDbInterpreter (db) {
+  return makeInterpreter('db', function* ({method, args}) {
+    const resultPromise = db[method](...args)
+    return yield* async_(resultPromise)
+  })
 }
 // }}}
 
 
 // function main () {{{
 function main () {
-  const handleRequest = createRequestRunner()
+  const db = {
+    load (id) {
+      return Promise.resolve({id: id, payload: 'P'})
+    },
+  }
+  const config = { secret: 'SECRET' }
+  const logger = console.log.bind(console)
+
+  const handleRequest = createRequestRunner(db, config, logger)
 
   handleRequest({
     id: 'REQUEST ID',
     cookie: process.argv[2],
     params: {id: process.argv[3]},
-  }).then((response) => console.log('response', response))
+  }).then(
+    (response) => console.log('response', response),
+    (err) => console.error(err)
+  )
 }
 
 main()
@@ -74,24 +79,17 @@ main()
 /**
  * Here we build our interpreter stack
  */
-function createRequestRunner () {
-  const db = {
-    load (id) {
-      return Promise.resolve({id: id, payload: 'P'})
-    },
-  }
-
-  const config = {
-    secret: 'SECRET',
-  }
-
-  const logger = console.log.bind(console)
+function createRequestRunner (db, config, logger) {
+  const run = compose([
+    runAsync,
+    makeLoggingInterpreter(logger),
+    makeConfigInterpreter(config),
+    makeDbInterpreter(db),
+    // makeInstrumentedDbInterpreter(db),
+  ])
 
   return function (req) {
-    return runAsync(
-      unwrapConfig(config,
-      unwrapLogging(logger,
-      unwrapDbInstrumented(db, handleRequest(req)))))
+    return run(handleRequest(req))
   }
 }
 
@@ -104,22 +102,12 @@ function createRequestRunner () {
  * without changing the database implementation or the command
  * constructors.
  */
-function* unwrapDbInstrumented (db, gen) {
-  let input
-  while (true) {
-    const {value, done} = gen.next(input)
-    if (done) {
-      return value
-    }
-
-    if (value.command === 'db') {
-      const {method, args} = value.param
-      const resultPromise = db[method](...args)
-      input = yield* async_(resultPromise)
-      yield* log(`DB#${method}(${JSON.stringify(args[0])}) -> ${JSON.stringify(input)}`)
-    } else {
-      input = yield value
-    }
-  }
+function makeInstrumentedDbInterpreter (db) {
+  return makeInterpreter('db', function* ({method, args}) {
+    const resultPromise = db[method](...args)
+    const result = yield* async_(resultPromise)
+    yield* log(`DB#${method}(${JSON.stringify(args[0])}) -> ${JSON.stringify(result)}`)
+    return result
+  })
 }
 //
