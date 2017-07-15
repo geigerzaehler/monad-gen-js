@@ -20,13 +20,15 @@ First of all there is boilerplate: Every function now is wrapped in another
 function that specifies the dependencies. And every where we want to use a
 function we need to pass in the dependencies first.
 
-But a more serious problem is that dependencies are treated as separate
-entities. That may not be the case. The last function in `07-db.js` shows how we
-use logging inside the database interpreter to obtain instrumentation without
-changing the database instance. Let’s try to accomplish database instrumentation
-with dependency injection.
+But a more serious problem is that dependencies are treated as independent
+entities. That may not be the case. The `unwrapDbInstrumented` function in
+`07-db.js` shows how we can use logging inside the database interpreter to
+provide instrumentation. The key advantage is that we can do this without
+relying on a specific logger implementation and without knowing about the
+database internals.
 
-With dependency injection we start of with something like this:
+Let’s try to accomplish database instrumentation with dependency injection. We
+start of with something like this:
 ~~~js
 function createRequestHandler (log, getConfig, db) {
   const loadFromDb = makeLoadFromDb(db)
@@ -47,9 +49,10 @@ function makeLoadFromDb (db) {
 ~~~
 
 A naive way to add instrumentation would be to change `makeLoadFromDb`. But if
-we do that we get instrumentation every time we handle a request. So what we
-need to do is add instrumentation to `db` before we pass it to
-`createRequestHandler`. We end up with
+we do that we get instrumentation every time we handle a request. Instead, the
+caller of `createRequestHandler` should control if we instrument or not. For
+this we add instrumentation to `db` before we pass it to `createRequestHandler`.
+This leads to
 
 ~~~js
 function createRequestHandlerWithDbInstrumenation (log, getConfig, db) {
@@ -62,7 +65,12 @@ function createRequestHandlerWithDbInstrumenation (log, getConfig, db) {
 }
 ~~~
 
-Now assume we want to instrument access to the configuration instead. We write
+We already see that this approach is very verbose and requires us to emulate a
+`db` object, thus increasing the coupling between the database object and the
+implementation.
+
+Let’s have a look at composability of instrumentation Assume we want to
+instrument access to the configuration instead. We write
 
 ~~~js
 function createRequestHandlerWithConfigInstrumentation (log, getConfig, db) {
@@ -119,6 +127,5 @@ function* unwrapConfigAndDbInstrumented (db, config, gen) {
 }
 ~~~
 
-Finally try implementing something like provided in `collect-logger.js` with
-dependency injection.
-
+Finally try implementing something like provided in
+[`collect-logger.js`](./collect-logger.js) with dependency injection.

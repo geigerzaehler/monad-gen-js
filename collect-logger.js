@@ -1,7 +1,7 @@
 /**
- * This file showcases a different kind of `log` interpreter.
- *
- * See `unwrapCollectLogger`
+ * This file showcases a different kind of `log` interpreter where we
+ * _collect_ the log lines and return them when running the
+ * interpreter. See `unwrapCollectLogger` for details
  */
 const {log} = require('./03-logger')
 const {validCookie} = require('./04-config')
@@ -21,6 +21,8 @@ function* handleRequest (req) {
  * This logging interpreter is different from others in that it does not have an
  * argument. Instead of delegating the logging to a function we collect all
  * logging statements and return them when we are done interpreting the actions.
+ *
+ * In spirit this is similar to the to the Writer Monad
  */
 function* unwrapCollectLogger (gen) {
   const logs = []
