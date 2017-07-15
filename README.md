@@ -17,3 +17,12 @@ allow you to discover the code incrementally. (See `.vimrc`.)
 You can also skip to the end to run the finished code with
 
     $ node 08-db.js <COOKIE SECRET> <RESOURCE ID>
+
+There are also additional files that showcase some cool things you can do with
+this approach.
+
+- [`call-cc.js`](./call-cc.js) shows you how you can use a “call with current
+  continuation” pattern to do early returns and manipulate the control flow.
+- [`collect-logger.js`](./collect-logger.js) shows you to build a logging
+  interpreter that collects and returns the logging statements instead of
+  executing a function.
